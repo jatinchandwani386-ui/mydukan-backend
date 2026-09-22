@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>My Dukan — Admin</title>
+<style>
+  :root {
+    --ink: #1c1a17;
+    --paper: #fbfaf7;
+    --panel: #ffffff;
+    --line: #e6e1d6;
+    --saffron: #c9711a;
+    --saffron-dark: #a85813;
+    --teal: #1f5f56;
+    --muted: #7a7468;
+    --danger: #b2412f;
+    --radius: 3px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    font-size: 14.5px;
+  }
+  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; margin: 0; }
+  a { color: inherit; }
+
+  #login-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  }
+  #login-box {
+    width: 320px; background: var(--panel); border: 1px solid var(--line);
+    padding: 32px 28px; border-radius: var(--radius);
+  }
+  #login-box h1 { font-size: 26px; margin-bottom: 4px; }
+  #login-box p.tag { color: var(--muted); margin: 0 0 22px; font-size: 13px; }
+  #login-box input {
+    width: 100%; padding: 9px 10px; margin-bottom: 10px; border: 1px solid var(--line);
+    border-radius: var(--radius); font-size: 14px; background: var(--paper);
+  }
+  #login-box button, .btn {
+    background: var(--saffron); color: #fff; border: none; padding: 9px 16px;
+    border-radius: var(--radius); font-size: 14px; cursor: pointer; font-weight: 600;
+  }
+  #login-box button:hover, .btn:hover { background: var(--saffron-dark); }
+  #login-error { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 4px; }
+
+  #app { display: none; min-height: 100vh; }
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 18px 28px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  header h1 { font-size: 20px; }
+  header .sub { color: var(--muted); font-size: 12px; letter-spacing: 0.02em; }
+  header .who { font-size: 13px; color: var(--muted); }
+  header .who button { margin-left: 12px; background: none; border: 1px solid var(--line); padding: 5px 10px; border-radius: var(--radius); cursor: pointer; }
+
+  nav { display: flex; gap: 4px; padding: 0 28px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  nav button {
+    background: none; border: none; padding: 12px 14px; cursor: pointer; font-size: 13.5px;
+    color: var(--muted); border-bottom: 2px solid transparent;
+  }
+  nav button.active { color: var(--ink); border-bottom-color: var(--saffron); font-weight: 600; }
+
+  main { padding: 26px 28px; max-width: 1100px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; }
+  .toolbar input, .toolbar select {
+    padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel); }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: middle; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+  td.num { text-align: right; }
+  tr img { width: 36px; height: 36px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--line); vertical-align: middle; margin-right: 8px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge.live { background: #e4f0ec; color: var(--teal); }
+  .badge.hidden { background: #f2ece0; color: var(--muted); }
+  .badge.featured { background: #fbe9d6; color: var(--saffron-dark); }
+  .row-actions button {
+    background: none; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 4px 8px; font-size: 12px; cursor: pointer; margin-right: 4px;
+  }
+  .row-actions button.danger { border-color: var(--danger); color: var(--danger); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+  .card h3 { font-size: 15px; margin-bottom: 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; margin-top: 10px; }
+  input, textarea, select {
+    width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--paper); font-size: 13.5px; font-family: inherit;
+  }
+  textarea { min-height: 80px; resize: vertical; }
+  .form-actions { margin-top: 18px; display: flex; gap: 10px; }
+  .btn.secondary { background: none; color: var(--ink); border: 1px solid var(--line); }
+  .btn.secondary:hover { background: var(--paper); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .msg { font-size: 13px; margin-top: 10px; }
+  .msg.error { color: var(--danger); }
+  .msg.ok { color: var(--teal); }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div id="login-box">
+    <h1>My Dukan</h1>
+    <p class="tag">Admin console</p>
+    <input id="login-email" type="email" placeholder="Email" autocomplete="username" />
+    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
+    <button class="btn" style="width:100%" onclick="doLogin()">Sign in</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div>
+      <h1>My Dukan</h1>
+      <div class="sub">Affiliate catalog admin</div>
+    </div>
+    <div class="who">
+      <span id="who-name"></span>
+      <button onclick="logout()">Sign out</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tab-btn active" data-tab="products" onclick="showTab('products')">Products</button>
+    <button class="tab-btn" data-tab="quickadd" onclick="showTab('quickadd')">Quick Add</button>
+    <button class="tab-btn" data-tab="categories" onclick="showTab('categories')">Categories</button>
+    <button class="tab-btn" data-tab="analytics" onclick="showTab('analytics')">Click Analytics</button>
+  </nav>
+
+  <main>
+    <!-- PRODUCTS -->
+    <div class="panel active" id="panel-products">
+      <div class="toolbar">
+        <input id="prod-search" placeholder="Search products…" onkeydown="if(event.key==='Enter')loadProducts()" />
+        <select id="prod-status" onchange="loadProducts()">
+          <option value="">All statuses</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+          <option value="archived">Archived</option>
+        </select>
+        <button class="btn" onclick="openProductForm()">+ Add product manually</button>
+      </div>
+
+      <div id="product-form-card" style="display:none"></div>
+
+      <table>
+        <thead><tr>
+          <th>Product</th><th>Category</th><th>Price</th><th>Status</th><th>Clicks</th><th></th>
+        </tr></thead>
+        <tbody id="product-rows"></tbody>
+      </table>
+      <div id="product-empty" class="empty" style="display:none">No products yet.</div>
+    </div>
+
+    <!-- QUICK ADD -->
+    <div class="panel" id="panel-quickadd">
+      <div class="card">
+        <h3>Quick Add by URL / ASIN</h3>
+        <p class="hint">Paste a full Amazon product URL or a bare 10-character ASIN. This calls the Product Advertising API (PA-API) on the backend — make sure PAAPI_* credentials are set in your .env.</p>
+        <input id="quickadd-input" placeholder="https://www.amazon.in/dp/B0XXXXXXX or B0XXXXXXX" />
+        <div class="form-actions">
+          <button class="btn" onclick="doQuickAddLookup()">Fetch product data</button>
+        </div>
+        <div id="quickadd-msg" class="msg"></div>
+      </div>
+      <div id="quickadd-result"></div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="panel" id="panel-categories">
+      <div class="card">
+        <h3 id="cat-form-title">Add category</h3>
+        <input type="hidden" id="cat-id" />
+        <label>Name</label>
+        <input id="cat-name" />
+        <label>Parent category (optional — leave blank for top-level)</label>
+        <select id="cat-parent"><option value="">— Top level —</option></select>
+        <div class="form-actions">
+          <button class="btn" onclick="saveCategory()">Save category</button>
+          <button class="btn secondary" onclick="resetCategoryForm()">Clear</button>
+        </div>
+        <div id="cat-msg" class="msg"></div>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>Parent</th><th>Active</th><th></th></tr></thead>
+        <tbody id="category-rows"></tbody>
+      </table>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="panel" id="panel-analytics">
+      <div class="card">
+        <h3>Outbound clicks (last 30 days)</h3>
+        <table>
+          <thead><tr><th>Product</th><th class="num">Clicks</th></tr></thead>
+          <tbody id="analytics-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const API = "/api";
+  let TOKEN = localStorage.getItem("mydukan_token") || "";
+  let categoriesCache = [];
+
+  // ---------- Auth ----------
+  async function doLogin() {
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    const errEl = document.getElementById("login-error");
+    errEl.textContent = "";
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Login failed");
+      TOKEN = data.token;
+      localStorage.setItem("mydukan_token", TOKEN);
+      document.getElementById("who-name").textContent = data.user.name;
+      enterApp();
+    } catch (e) {
+      errEl.textContent = e.message;
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem("mydukan_token");
+    TOKEN = "";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("login-screen").style.display = "flex";
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(`${API}${path}`, {
+      ...opts,
+      headers: {
+        "Content-Type": "application/json",
+        ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+        ...(opts.headers || {}),
+      },
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || "Request failed");
+    return data;
+  }
+
+  async function enterApp() {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    try {
+      const me = await api("/auth/me");
+      document.getElementById("who-name").textContent = me.user.name;
+    } catch (e) { return logout(); }
+    await loadCategories();
+    await loadProducts();
+  }
+
+  // ---------- Tabs ----------
+  function showTab(name) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    document.getElementById(`panel-${name}`).classList.add("active");
+    if (name === "categories") loadCategories(true);
+    if (name === "analytics") loadAnalytics();
+  }
+
+  // ---------- Products ----------
+  async function loadProducts() {
+    const q = document.getElementById("prod-search").value;
+    const status = document.getElementById("prod-status").value;
+    const params = new URLSearchParams({ limit: "50" });
+    if (q) params.set("q", q);
+    if (status) params.set("status", status);
+    const { data } = await api(`/admin/products?${params}`);
+    const rows = document.getElementById("product-rows");
+    const empty = document.getElementById("product-empty");
+    rows.innerHTML = "";
+    empty.style.display = data.length ? "none" : "block";
+    data.forEach(p => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><img src="${p.images?.primary || ''}" onerror="this.style.visibility='hidden'"/>${p.title}</td>
+        <td>${p.category?.name || "—"}</td>
+        <td>₹${p.price?.current ?? "—"} <span class="hint">(MRP ₹${p.price?.mrp ?? "—"})</span></td>
+        <td>
+          <span class="badge ${p.isHidden ? 'hidden' : 'live'}">${p.isHidden ? 'Hidden' : p.status}</span>
+          ${p.isFeatured ? '<span class="badge featured">Featured</span>' : ''}
+        </td>
+        <td class="num">${p.clickCount ?? 0}</td>
+        <td class="row-actions">
+          <button onclick='openProductForm(${JSON.stringify(p).replace(/'/g, "&apos;")})'>Edit</button>
+          <button onclick="toggleFeature('${p._id}')">${p.isFeatured ? 'Unfeature' : 'Feature'}</button>
+          <button onclick="toggleHide('${p._id}')">${p.isHidden ? 'Unhide' : 'Hide'}</button>
+          <button class="danger" onclick="deleteProduct('${p._id}')">Delete</button>
+        </td>`;
+      rows.appendChild(tr);
+    });
+  }
+
+  function openProductForm(prod) {
+    const card = document.getElementById("product-form-card");
+    const p = prod || { images: {}, price: {}, affiliate: {} };
+    card.style.display = "block";
+    card.className = "card";
+    card.innerHTML = `
+      <h3>${p._id ? "Edit product" : "Add product"}</h3>
+      <div class="grid2">
+        <div>
+          <label>Title</label><input id="f-title" value="${p.title || ''}" />
+          <label>Primary image URL</label><input id="f-image" value="${p.images?.primary || ''}" />
+          <label>Gallery image URLs (comma-separated)</label><input id="f-gallery" value="${(p.images?.gallery||[]).join(', ')}" />
+          <label>Category</label>
+          <select id="f-category">${categoriesCache.map(c => `<option value="${c._id}" ${p.category?._id===c._id?'selected':''}>${c.name}</option>`).join('')}</select>
+          <label>Tags (comma-separated)</label><input id="f-tags" value="${(p.tags||[]).join(', ')}" />
+        </div>
+        <div>
+          <label>Current price</label><input id="f-price" type="number" value="${p.price?.current ?? ''}" />
+          <label>MRP</label><input id="f-mrp" type="number" value="${p.price?.mrp ?? ''}" />
+          <label>Rating (0–5)</label><input id="f-rating" type="number" step="0.1" value="${p.rating ?? ''}" />
+          <label>Review count</label><input id="f-reviews" type="number" value="${p.reviewCount ?? ''}" />
+          <label>Amazon ASIN</label><input id="f-asin" value="${p.affiliate?.asin || ''}" />
+          <label>Original Amazon URL</label><input id="f-origurl" value="${p.affiliate?.originalUrl || ''}" />
+        </div>
+      </div>
+      <label>Description (HTML/specs allowed)</label>
+      <textarea id="f-desc">${p.description || ''}</textarea>
+      <div class="form-actions">
+        <button class="btn" onclick="saveProduct(${p._id ? `'${p._id}'` : 'null'})">Save product</button>
+        <button class="btn secondary" onclick="document.getElementById('product-form-card').style.display='none'">Cancel</button>
+      </div>
+      <div id="product-msg" class="msg"></div>`;
+    card.scrollIntoView({ behavior: "smooth" });
+  }
+
+  async function saveProduct(id) {
+    const body = {
+      title: document.getElementById("f-title").value,
+      description: document.getElementById("f-desc").value,
+      images: {
+        primary: document.getElementById("f-image").value,
+        gallery: document.getElementById("f-gallery").value.split(",").map(s => s.trim()).filter(Boolean),
+      },
+      price: {
+        current: Number(document.getElementById("f-price").value),
+        mrp: Number(document.getElementById("f-mrp").value),
+      },
+      rating: Number(document.getElementById("f-rating").value) || 0,
+      reviewCount: Number(document.getElementById("f-reviews").value) || 0,
+      category: document.getElementById("f-category").value,
+      tags: document.getElementById("f-tags").value.split(",").map(s => s.trim()).filter(Boolean),
+      affiliate: {
+        asin: document.getElementById("f-asin").value.toUpperCase(),
+        originalUrl: document.getElementById("f-origurl").value,
+      },
+    };
+    const msg = document.getElementById("product-msg");
+    try {
+      if (id) await api(`/admin/products/${id}`, { method: "PUT", body: JSON.stringify(body) });
+      else await api(`/admin/products`, { method: "POST", body: JSON.stringify(body) });
+      msg.className = "msg ok"; msg.textContent = "Saved.";
+      await loadProducts();
+      setTimeout(() => document.getElementById("product-form-card").style.display = "none", 400);
+    } catch (e) {
+      msg.className = "msg error"; msg.textContent = e.message;
+    }
+  }
+
+  async function toggleFeature(id) { await api(`/admin/products/${id}/feature`, { method: "PATCH" }); loadProducts(); }
+  async function toggleHide(id) { await api(`/admin/products/${id}/hide`, { method: "PATCH" }); loadProducts(); }
+  async function deleteProduct(id) {
+    if (!confirm("Delete this product permanently?")) return;
+    await api(`/admin/products/${id}`, { method: "DELETE" });
+    loadProducts();
+  }
+
+  // ---------- Quick Add ----------
+  async function doQuickAddLookup() {
+    const input = document.getElementById("quickadd-input").value.trim();
+    const msg = document.getElementById("quickadd-msg");
+    const result = document.getElementById("quickadd-result");
+    msg.className = "msg"; msg.textContent = "Fetching…";
+    result.innerHTML = "";
+    try {
+      const { data } = await api(`/admin/quick-add/lookup`, { method: "POST", body: JSON.stringify({ input }) });
+      msg.className = "msg ok"; msg.textContent = "Fetched — review below, then save.";
+      openProductForm({
+        title: data.title, description: data.description,
+        images: data.images, price: data.price, rating: data.rating,
+        reviewCount: data.reviewCount, affiliate: { asin: data.asin, originalUrl: data.originalUrl },
+      });
+      document.getElementById("panel-quickadd").classList.remove("active");
+      document.getElementById("panel-products").classList.add("active");
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "products"));
+    } catch (e) {
+      msg.className = "msg error"; msg.textContent = e.message;
+    }
+  }
+
+  // ---------- Categories ----------
+  async function loadCategories(renderTable) {
+    const { data } = await api(`/admin/categories`);
+    categoriesCache = data;
+    const parentSelect = document.getElementById("cat-parent");
+    parentSelect.innerHTML = `<option value="">— Top level —</option>` +
+      data.map(c => `<option value="${c._id}">${c.name}</option>`).join("");
+    if (renderTable) {
+      const rows = document.getElementById("category-rows");
+      rows.innerHTML = data.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td>${data.find(p => p._id === c.parent)?.name || "—"}</td>
+          <td>${c.isActive ? "Yes" : "No"}</td>
+          <td class="row-actions">
+            <button onclick='editCategory(${JSON.stringify(c).replace(/'/g, "&apos;")})'>Edit</button>
+          </td>
+        </tr>`).join("");
+    }
+  }
+
+  function editCategory(c) {
+    document.getElementById("cat-id").value = c._id;
+    document.getElementById("cat-name").value = c.name;
+    document.getElementById("cat-parent").value = c.parent || "";
+    document.getElementById("cat-form-title").textContent = "Edit category";
+  }
+  function resetCategoryForm() {
+    document.getElementById("cat-id").value = "";
+    document.getElementById("cat-name").value = "";
+    document.getElementById("cat-parent").value = "";
+    document.getElementById("cat-form-title").textContent = "Add category";
+  }
+  async function saveCategory() {
+    const id = document.getElementById("cat-id").value;
+    const body = {
+      name: document.getElementById("cat-name").value,
+      parent: document.getElementById("cat-parent").value || null,
+    };
+    const msg = document.getElementById("cat-msg");
+    try {
+      if (id) await api(`/admin/categories/${id}`, { method: "PUT", body: JSON.stringify(body) });
+      else await api(`/admin/categories`, { method: "POST", body: JSON.stringify(body) });
+      msg.className = "msg ok"; msg.textContent = "Saved.";
+      resetCategoryForm();
+      await loadCategories(true);
+    } catch (e) {
+      msg.className = "msg error"; msg.textContent = e.message;
+    }
+  }
+
+  // ---------- Analytics ----------
+  async function loadAnalytics() {
+    const { data } = await api(`/admin/analytics/clicks`);
+    document.getElementById("analytics-rows").innerHTML = data.length
+      ? data.map(r => `<tr><td>${r.title}</td><td class="num">${r.clicks}</td></tr>`).join("")
+      : `<tr><td colspan="2" class="empty">No clicks logged yet.</td></tr>`;
+  }
+
+  // ---------- Boot ----------
+  if (TOKEN) enterApp().catch(() => logout());
+</script>
+</body>
+</html>
