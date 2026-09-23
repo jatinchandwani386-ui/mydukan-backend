@@ -65,7 +65,7 @@
   }
   nav button.active { color: var(--ink); border-bottom-color: var(--saffron); font-weight: 600; }
 
-  main { padding: 26px 28px; max-width: 1100px; }
+  main { padding: 26px 28px; max-width: 1150px; }
   .panel { display: none; }
   .panel.active { display: block; }
 
@@ -79,15 +79,25 @@
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
   td.num { text-align: right; }
   tr img { width: 36px; height: 36px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--line); vertical-align: middle; margin-right: 8px; }
+  
   .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
   .badge.live { background: #e4f0ec; color: var(--teal); }
   .badge.hidden { background: #f2ece0; color: var(--muted); }
   .badge.featured { background: #fbe9d6; color: var(--saffron-dark); }
+  .badge.clicked { background: #e0f2fe; color: #0284c7; }
+  .badge.pending { background: #fff3cd; color: #856404; }
+  .badge.approved { background: #d1ecf1; color: #0c5460; }
+  .badge.paid { background: #d4edda; color: #155724; }
+  .badge.rejected { background: #f8d7da; color: #721c24; }
+
   .row-actions button {
     background: none; border: 1px solid var(--line); border-radius: var(--radius);
     padding: 4px 8px; font-size: 12px; cursor: pointer; margin-right: 4px;
   }
+  .row-actions button.success { border-color: var(--teal); color: var(--teal); font-weight: 600; }
+  .row-actions button.success:hover { background: #e4f0ec; }
   .row-actions button.danger { border-color: var(--danger); color: var(--danger); }
+  .row-actions button.danger:hover { background: #fdf2f0; }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
   .card h3 { font-size: 15px; margin-bottom: 12px; }
@@ -106,6 +116,16 @@
   .msg.error { color: var(--danger); }
   .msg.ok { color: var(--teal); }
   .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none;
+    align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal-box {
+    background: #fff; border-radius: var(--radius); padding: 22px; width: 380px; max-width: 90%;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  }
 </style>
 </head>
 <body>
@@ -127,7 +147,7 @@
   <header>
     <div>
       <h1>My Dukan</h1>
-      <div class="sub">Affiliate catalog admin</div>
+      <div class="sub">Affiliate catalog & cashback admin</div>
     </div>
     <div class="who">
       <span id="who-name"></span>
@@ -140,6 +160,8 @@
     <button class="tab-btn" data-tab="quickadd" onclick="showTab('quickadd')">Quick Add</button>
     <button class="tab-btn" data-tab="categories" onclick="showTab('categories')">Categories</button>
     <button class="tab-btn" data-tab="analytics" onclick="showTab('analytics')">Click Analytics</button>
+    <!-- NEW CASHBACK TAB -->
+    <button class="tab-btn" data-tab="cashback" onclick="showTab('cashback')" style="font-weight: bold; color: var(--saffron);">Cashback Claims 🎁</button>
   </nav>
 
   <main>
@@ -212,13 +234,59 @@
         </table>
       </div>
     </div>
+
+    <!-- CASHBACK CLAIMS (NEW PANEL) -->
+    <div class="panel" id="panel-cashback">
+      <div class="toolbar">
+        <select id="cashback-status" onchange="loadCashbackClaims()">
+          <option value="">All Statuses</option>
+          <option value="CLICKED">Automatic 1-Click (Clicked)</option>
+          <option value="PAID">Paid</option>
+          <option value="REJECTED">Rejected</option>
+          <option value="PENDING">Pending Review</option>
+          <option value="APPROVED">Approved</option>
+        </select>
+        <button class="btn secondary" onclick="loadCashbackClaims()">Refresh Claims</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Amazon Order ID & Product</th>
+            <th>Order Price</th>
+            <th>Cashback (0.25%)</th>
+            <th>UPI ID</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="cashback-rows"></tbody>
+      </table>
+      <div id="cashback-empty" class="empty" style="display:none">No cashback claims found.</div>
+    </div>
   </main>
+</div>
+
+<!-- UTR MODAL -->
+<div id="utr-modal" class="modal-overlay">
+  <div class="modal-box">
+    <h3>Record UPI Payout</h3>
+    <p class="hint" id="utr-info" style="margin: 10px 0;"></p>
+    <label>12-Digit Bank UTR / Ref No.</label>
+    <input id="utr-input" placeholder="e.g. 423512345678" />
+    <div class="form-actions" style="margin-top: 15px;">
+      <button class="btn" onclick="submitUtrPayout()">Confirm Paid</button>
+      <button class="btn secondary" onclick="closeUtrModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <script>
   const API = "/api";
   let TOKEN = localStorage.getItem("mydukan_token") || "";
   let categoriesCache = [];
+  let currentClaimForPayout = null;
 
   // ---------- Auth ----------
   async function doLogin() {
@@ -281,6 +349,7 @@
     document.getElementById(`panel-${name}`).classList.add("active");
     if (name === "categories") loadCategories(true);
     if (name === "analytics") loadAnalytics();
+    if (name === "cashback") loadCashbackClaims();
   }
 
   // ---------- Products ----------
@@ -472,6 +541,105 @@
     document.getElementById("analytics-rows").innerHTML = data.length
       ? data.map(r => `<tr><td>${r.title}</td><td class="num">${r.clicks}</td></tr>`).join("")
       : `<tr><td colspan="2" class="empty">No clicks logged yet.</td></tr>`;
+  }
+
+  // ---------- Cashback Claims (NEW) ----------
+  async function loadCashbackClaims() {
+    const status = document.getElementById("cashback-status").value;
+    const url = status ? `/cashback/admin/claims?status=${status}` : `/cashback/admin/claims`;
+    const rows = document.getElementById("cashback-rows");
+    const empty = document.getElementById("cashback-empty");
+    rows.innerHTML = "<tr><td colspan='7' style='text-align:center;'>Loading claims…</td></tr>";
+    try {
+      const { data } = await api(url);
+      rows.innerHTML = "";
+      empty.style.display = data.length ? "none" : "block";
+      data.forEach(c => {
+        const tr = document.createElement("tr");
+        const statusClass = c.status.toLowerCase();
+        tr.innerHTML = `
+          <td>
+            <b>${c.userId?.name || 'Customer'}</b><br/>
+            <span class="hint">${c.userId?.mobile || '—'}</span><br/>
+            <span style="font-size:11px; color:var(--teal);">Total Paid: ₹${c.userId?.totalCashbackPaid || 0}</span>
+          </td>
+          <td>
+            <b>${c.productName}</b><br/>
+            <code style="color:var(--saffron); font-weight:bold;">${c.amazonOrderId}</code><br/>
+            <span class="hint">${new Date(c.purchaseDate).toLocaleDateString('en-IN')}</span>
+          </td>
+          <td>₹${c.purchaseAmount}</td>
+          <td><b style="color:var(--teal); font-size:15px;">₹${c.cashbackAmount}</b></td>
+          <td>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <code style="background:var(--paper); padding:3px 6px; border:1px solid var(--line); border-radius:3px; font-weight:600;">${c.upiId}</code>
+              <button type="button" title="Copy UPI" style="padding:2px 5px; font-size:11px; border:1px solid var(--line); border-radius:3px; background:#fff; cursor:pointer;" onclick="navigator.clipboard.writeText('${c.upiId}'); alert('UPI ID Copied: ${c.upiId}')">📋</button>
+            </div>
+          </td>
+          <td>
+            <span class="badge ${statusClass}">${c.status}</span>
+            ${c.payoutDetails?.utrNumber ? `<br/><span class="hint" style="font-size:11px;">UTR: ${c.payoutDetails.utrNumber}</span>` : ''}
+          </td>
+          <td class="row-actions">
+            ${(c.status === 'CLICKED' || c.status === 'PENDING' || c.status === 'APPROVED') ? `
+              <button class="success" onclick='openUtrModal(${JSON.stringify(c).replace(/'/g, "&apos;")})'>Pay via UPI</button>
+              <button class="danger" onclick="updateClaimStatus('${c._id}', 'REJECTED')">Reject</button>
+            ` : ''}
+            ${c.status === 'PAID' ? '<span style="color:var(--teal); font-size:12px; font-weight:bold;">✓ Paid</span>' : ''}
+            ${c.status === 'REJECTED' ? '<span style="color:var(--danger); font-size:12px; font-weight:bold;">✗ Rejected</span>' : ''}
+          </td>
+        `;
+        rows.appendChild(tr);
+      });
+    } catch (e) {
+      rows.innerHTML = `<tr><td colspan='7' class="msg error">${e.message}</td></tr>`;
+    }
+  }
+
+  async function updateClaimStatus(claimId, status, utrNumber = "") {
+    try {
+      await api(`/cashback/admin/claims/${claimId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status, utrNumber }),
+      });
+      loadCashbackClaims();
+    } catch (e) {
+      alert("Error: " + e.message);
+    }
+  }
+
+  function openUtrModal(claim) {
+    currentClaimForPayout = claim;
+    document.getElementById("utr-info").innerHTML = `
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px; margin-bottom:12px;">
+        <div style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase;">Cashback Payout</div>
+        <div style="font-size:20px; font-weight:bold; color:var(--teal); margin:4px 0 8px 0;">₹${claim.cashbackAmount}</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; padding:6px 10px; border:1px solid #cbd5e1; border-radius:4px;">
+          <code style="font-weight:bold; font-size:13px; color:#0f172a;">${claim.upiId}</code>
+          <button type="button" style="padding:3px 8px; font-size:11px; background:#0284c7; color:#fff; border:none; border-radius:3px; cursor:pointer;" onclick="navigator.clipboard.writeText('${claim.upiId}'); alert('UPI ID Copied!')">📋 Copy UPI</button>
+        </div>
+        <div style="margin-top:8px; font-size:12px; color:#64748b; line-height:1.5;">
+          <b>Customer:</b> ${claim.userId?.name || 'Customer'} (${claim.userId?.mobile || '—'})<br/>
+          <b>Product:</b> ${claim.productName}
+        </div>
+      </div>
+      <span style="font-size:12px; color:#475569;">PhonePe / GPay / Paytm se paise transfer karne ke baad Bank ka <b>12-digit UTR</b> yahan enter karein:</span>
+    `;
+    document.getElementById("utr-input").value = "";
+    document.getElementById("utr-modal").style.display = "flex";
+  }
+
+  function closeUtrModal() {
+    currentClaimForPayout = null;
+    document.getElementById("utr-modal").style.display = "none";
+  }
+
+  async function submitUtrPayout() {
+    const utr = document.getElementById("utr-input").value.trim();
+    if (!utr) return alert("Please enter the Bank UTR / Transaction Reference number");
+    if (!currentClaimForPayout) return;
+    await updateClaimStatus(currentClaimForPayout._id, "PAID", utr);
+    closeUtrModal();
   }
 
   // ---------- Boot ----------

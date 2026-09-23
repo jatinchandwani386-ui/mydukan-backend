@@ -14,6 +14,7 @@ const productRoutes = require("./routes/productRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const redirectRoutes = require("./routes/redirectRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const cashbackRoutes = require("./routes/cashbackRoutes"); // <-- Added Cashback Routes
 
 connectDB();
 
@@ -42,6 +43,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/redirect", redirectRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/cashback", cashbackRoutes); // <-- Registered /api/cashback
 
 // Serve the lightweight built-in admin dashboard as static files
 app.use("/admin", express.static("admin-dashboard"));

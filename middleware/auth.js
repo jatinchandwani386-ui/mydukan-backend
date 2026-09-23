@@ -2,18 +2,19 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 /**
- * Protects admin routes. Expects `Authorization: Bearer <token>`.
- * Attaches the authenticated user (minus password) to req.user.
+ * Protects routes. Expects `Authorization: Bearer <token>`.
+ * Attaches the authenticated user to req.user.
  */
 async function protect(req, res, next) {
   try {
     const header = req.headers.authorization || "";
     if (!header.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, message: "Not authenticated" });
+      return res.status(401).json({ success: false, message: "Not authenticated, token missing" });
     }
 
     const token = header.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || "mysecretkey123456789mydukan";
+    const decoded = jwt.verify(token, secret);
 
     const user = await User.findById(decoded.id);
     if (!user) {
@@ -27,14 +28,19 @@ async function protect(req, res, next) {
   }
 }
 
-/** Restricts a route to specific roles, e.g. authorize("admin") */
+/** 
+ * Restricts a route to specific roles, e.g. authorize("admin", "editor") 
+ */
 function authorize(...roles) {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ success: false, message: "Not authorized for this action" });
     }
     next();
   };
 }
 
-module.exports = { protect, authorize };
+// Cashback system aur admin routes ke liye convenient helper:
+const adminOnly = authorize("admin", "editor");
+
+module.exports = { protect, authorize, adminOnly };
